@@ -16,60 +16,60 @@ var internals = {};
 
 internals.isSorted = function (elements) {
 
-	var i = 0;
-	var li = elements.length;
+    var i = 0;
+    var li = elements.length;
 
-	while (i < li && elements[i + 1]) {
+    while (i < li && elements[i + 1]) {
 
-		if (elements[i].timestamp > elements[i + 1].timestamp) {
-			return false;
-		}
-		++i;
-	}
+        if (elements[i].timestamp > elements[i + 1].timestamp) {
+            return false;
+        }
+        ++i;
+    }
 
-	return true;
+    return true;
 };
 
 
 internals.readStream = function (done) {
 
-	var result = new Stream.Readable({ objectMode: true });
-	result._read = Hoek.ignore;
+    var result = new Stream.Readable({ objectMode: true });
+    result._read = Hoek.ignore;
 
-	if (typeof done === 'function') {
-		result.once('end', done);
-	}
+    if (typeof done === 'function') {
+        result.once('end', done);
+    }
 
-	return result;
+    return result;
 };
 
 
 internals.makeServer = function (handler) {
 
-	var server = Dgram.createSocket('udp4');
+    var server = Dgram.createSocket('udp4');
 
-	server.info = {
-		uri: 'udp://127.0.0.1:33333'
-	};
+    server.info = {
+        uri: 'udp://127.0.0.1:33333'
+    };
 
-	server.on('message', function (message, remote) {
+    server.on('message', function (message, remote) {
 
-		handler(message, remote);
-	});
+        handler(message, remote);
+    });
 
-	server.start = function (callback) {
+    server.start = function (callback) {
 
-		server.bind(33333, '127.0.0.1');
-		callback();
-	};
+        server.bind(33333, '127.0.0.1');
+        callback();
+    };
 
-	server.stop = function (callback) {
+    server.stop = function (callback) {
 
-		server.close();
-		callback();
-	};
+        server.close();
+        callback();
+    };
 
-	return server;
+    return server;
 };
 
 // Test shortcuts
@@ -81,274 +81,277 @@ var expect = Code.expect;
 
 it('allows creating without using new', function (done) {
 
-	var reporter = GoodUdp({ log: '*' }, { endpoint: 'www.github.com' });
-	expect(reporter).to.exist();
-	done();
+    var reporter = GoodUdp({ log: '*' }, { endpoint: 'www.github.com' });
+    expect(reporter).to.exist();
+    done();
 });
 
 it('allows creating using new', function (done) {
 
-	var reporter = new GoodUdp({ log: '*' }, { endpoint: 'www.github.com' });
-	expect(reporter).to.exist();
-	done();
+    var reporter = new GoodUdp({ log: '*' }, { endpoint: 'www.github.com' });
+    expect(reporter).to.exist();
+    done();
 });
 
 it('throws an error if missing endpoint', function (done) {
 
-	expect(function () {
+    expect(function () {
 
-		var reporter = new GoodUdp({ log: '*' }, null);
-	}).to.throw('config.endpoint must be a string');
+        var reporter = new GoodUdp({ log: '*' }, null);
+    }).to.throw('config.endpoint must be a string');
 
-	done();
+    done();
 });
 
 it('does not report if the event que is empty', function (done) {
 
-	var reporter = new GoodUdp({ log: '*' }, { endpoint: 'udp://localhost:33333', udpType: 'udp4', threshold: 5 });
+    var reporter = new GoodUdp({ log: '*' }, { endpoint: 'udp://localhost:33333', udpType: 'udp4', threshold: 5 });
 
-	var result = reporter._sendMessages();
-	expect(result).to.not.exist();
-	done();
+    var result = reporter._sendMessages();
+    expect(result).to.not.exist();
+    done();
 });
 
 describe('_report()', function () {
 
-	it('honors the threshold setting and sends the event in a batch', function (done) {
+    it('honors the threshold setting and sends the event in a batch', function (done) {
 
-		var stream = internals.readStream();
-		var hitCount = 0;
-		var ee = new EventEmitter();
-		var server = internals.makeServer(function (message, remote) {
+        var stream = internals.readStream();
+        var hitCount = 0;
+        var ee = new EventEmitter();
+        var server = internals.makeServer(function (message, remote) {
 
-			hitCount++;
-			var payload = JSON.parse(message.toString());
-			var events = payload.events.log;
+            hitCount++;
+            var payload = JSON.parse(message.toString());
+            var events = payload.events.log;
 
-			expect(payload.schema).to.equal('good-udp');
-			expect(events.length).to.equal(5);
+            expect(payload.schema).to.equal('good-udp');
+            expect(events.length).to.equal(5);
 
-			if (hitCount === 1) {
-				expect(events[4].id).to.equal(4);
-				expect(events[4].event).to.equal('log');
-			}
+            if (hitCount === 1) {
+                expect(events[4].id).to.equal(4);
+                expect(events[4].event).to.equal('log');
+            }
 
-			if (hitCount === 2) {
-				expect(events[4].id).to.equal(9);
-				expect(events[4].event).to.equal('log');
-				server.stop(function () {
-					done();
-				});
-			}
-		});
+            if (hitCount === 2) {
+                expect(events[4].id).to.equal(9);
+                expect(events[4].event).to.equal('log');
+                server.stop(function () {
 
-		server.start(function () {
+                    done();
+                });
+            }
+        });
 
-			var reporter = new GoodUdp({ log: '*' }, {
-				endpoint: server.info.uri,
-				udpType: 'udp4',
-				threshold: 5
-			});
+        server.start(function () {
 
-			reporter.init(stream, ee, function (err) {
+            var reporter = new GoodUdp({ log: '*' }, {
+                endpoint: server.info.uri,
+                udpType: 'udp4',
+                threshold: 5
+            });
 
-				expect(err).to.not.exist();
+            reporter.init(stream, ee, function (err) {
 
-				for (var i = 0; i < 10; ++i) {
-					stream.push({
-						id: i,
-						value: 'this is data for item ' + i,
-						event: 'log'
-					});
-				}
-			});
-		});
-	});
+                expect(err).to.not.exist();
 
-	it('sends each event individually if threshold is 0', function (done) {
+                for (var i = 0; i < 10; ++i) {
+                    stream.push({
+                        id: i,
+                        value: 'this is data for item ' + i,
+                        event: 'log'
+                    });
+                }
+            });
+        });
+    });
 
-		var stream = internals.readStream();
-		var hitCount = 0;
-		var ee = new EventEmitter();
-		var server = internals.makeServer(function (message, remote) {
+    it('sends each event individually if threshold is 0', function (done) {
 
-			hitCount++;
-			var payload = JSON.parse(message.toString());
+        var stream = internals.readStream();
+        var hitCount = 0;
+        var ee = new EventEmitter();
+        var server = internals.makeServer(function (message, remote) {
 
-			expect(payload.events).to.exist;
-			expect(payload.events.log).to.exist;
-			expect(payload.events.log.length).to.equal(1);
-			expect(payload.events.log[0].id).to.equal(hitCount - 1);
+            hitCount++;
+            var payload = JSON.parse(message.toString());
 
-			if (hitCount === 10) {
-				server.stop(function () {
-					done();
-				});
-			}
-		});
+            expect(payload.events).to.exist();
+            expect(payload.events.log).to.exist();
+            expect(payload.events.log.length).to.equal(1);
+            expect(payload.events.log[0].id).to.equal(hitCount - 1);
 
-		server.start(function () {
+            if (hitCount === 10) {
+                server.stop(function () {
 
-			var reporter = new GoodUdp({ log: '*'  }, { endpoint: server.info.uri, udpType: 'udp4', threshold: 0 });
+                    done();
+                });
+            }
+        });
 
-			reporter.init(stream, ee, function (err) {
+        server.start(function () {
 
-				expect(err).to.not.exist;
+            var reporter = new GoodUdp({ log: '*'  }, { endpoint: server.info.uri, udpType: 'udp4', threshold: 0 });
 
-				for (var i = 0; i < 10; ++i) {
-					stream.push({
-						id: i,
-						value: 'this is data for item ' + i,
-						event: 'log'
-					});
-				}
-			});
-		});
-	});
+            reporter.init(stream, ee, function (err) {
 
-	it('sends the events in an envelop grouped by type and ordered by timestamp', function(done) {
+                expect(err).to.not.exist();
 
-		var stream = internals.readStream();
-		var hitCount = 0;
-		var ee = new EventEmitter();
-		var server = internals.makeServer(function (message, remote) {
+                for (var i = 0; i < 10; ++i) {
+                    stream.push({
+                        id: i,
+                        value: 'this is data for item ' + i,
+                        event: 'log'
+                    });
+                }
+            });
+        });
+    });
 
-			hitCount++;
-			var payload = JSON.parse(message.toString());
-			var events = payload.events;
+    it('sends the events in an envelop grouped by type and ordered by timestamp', function (done) {
 
-			expect(payload.schema).to.equal('good-udp');
+        var stream = internals.readStream();
+        var hitCount = 0;
+        var ee = new EventEmitter();
+        var server = internals.makeServer(function (message, remote) {
 
-			expect(events.log).to.exist;
-			expect(events.request).to.exist;
+            hitCount++;
+            var payload = JSON.parse(message.toString());
+            var events = payload.events;
 
-			expect(internals.isSorted(events.log)).to.equal(true);
-			expect(internals.isSorted(events.request)).to.equal(true);
+            expect(payload.schema).to.equal('good-udp');
 
-			if (hitCount === 1) {
-				expect(events.log.length).to.equal(3);
-				expect(events.request.length).to.equal(2);
-			}
-			else if (hitCount === 2) {
-				expect(events.log.length).to.equal(2);
-				expect(events.request.length).to.equal(3);
-				server.stop(function () {
-					done();
-				});
-			}
-		});
+            expect(events.log).to.exist();
+            expect(events.request).to.exist();
 
-		server.start(function () {
+            expect(internals.isSorted(events.log)).to.equal(true);
+            expect(internals.isSorted(events.request)).to.equal(true);
 
-			var reporter = new GoodUdp({ log: '*', request: '*' }, { endpoint: server.info.uri, udpType: 'udp4', threshold: 5 });
+            if (hitCount === 1) {
+                expect(events.log.length).to.equal(3);
+                expect(events.request.length).to.equal(2);
+            }
+            else if (hitCount === 2) {
+                expect(events.log.length).to.equal(2);
+                expect(events.request.length).to.equal(3);
+                server.stop(function () {
 
-			reporter.init(stream, ee, function (err) {
+                    done();
+                });
+            }
+        });
 
-				expect(err).to.not.exist;
+        server.start(function () {
 
-				for (var i = 0; i < 10; ++i) {
-					var eventType = i % 2 === 0 ? 'log' : 'request';
+            var reporter = new GoodUdp({ log: '*', request: '*' }, { endpoint: server.info.uri, udpType: 'udp4', threshold: 5 });
 
-					stream.push({
-						id: i,
-						value: 'this is data for item ' + i,
-						timestamp: Math.floor(Date.now() + (Math.random() * 10000000000)),
-						event: eventType
-					});
-				}
-			});
-		});
-	});
+            reporter.init(stream, ee, function (err) {
 
-	it('handles circular object references correctly', function (done) {
+                expect(err).to.not.exist();
 
-		var stream = internals.readStream();
-		var hitCount = 0;
-		var ee = new EventEmitter();
-		var server = internals.makeServer(function (message, remote) {
+                for (var i = 0; i < 10; ++i) {
+                    var eventType = i % 2 === 0 ? 'log' : 'request';
 
-			hitCount++;
-			var payload = JSON.parse(message.toString());
-			var events = payload.events;
+                    stream.push({
+                        id: i,
+                        value: 'this is data for item ' + i,
+                        timestamp: Math.floor(Date.now() + (Math.random() * 10000000000)),
+                        event: eventType
+                    });
+                }
+            });
+        });
+    });
 
-			expect(events).to.exist();
-			expect(events.log).to.exist();
-			expect(events.log.length).to.equal(5);
-			expect(events.log[0]._data).to.equal('[Circular ~.events.log.0]');
+    it('handles circular object references correctly', function (done) {
 
+        var stream = internals.readStream();
+        var hitCount = 0;
+        var ee = new EventEmitter();
+        var server = internals.makeServer(function (message, remote) {
 
-			expect(hitCount).to.equal(1);
-			server.stop(function () {
-				done();
-			});
-		});
+            hitCount++;
+            var payload = JSON.parse(message.toString());
+            var events = payload.events;
 
-		server.start(function () {
+            expect(events).to.exist();
+            expect(events.log).to.exist();
+            expect(events.log.length).to.equal(5);
+            expect(events.log[0]._data).to.equal('[Circular ~.events.log.0]');
+            expect(hitCount).to.equal(1);
+            server.stop(function () {
 
-			var reporter = new GoodUdp({ log: '*' }, { endpoint: server.info.uri, udpType: 'udp4', threshold: 5 });
+                done();
+            });
+        });
 
-			reporter.init(stream, ee, function (err) {
+        server.start(function () {
 
-				expect(err).to.not.exist();
+            var reporter = new GoodUdp({ log: '*' }, { endpoint: server.info.uri, udpType: 'udp4', threshold: 5 });
 
-				for (var i = 0; i < 5; ++i) {
+            reporter.init(stream, ee, function (err) {
 
-					var data = {
-						event: 'log',
-						timestamp: Date.now(),
-						id: i
-					};
+                expect(err).to.not.exist();
 
-					data._data = data;
+                for (var i = 0; i < 5; ++i) {
 
-					stream.push(data);
-				}
-			});
-		});
-	});
+                    var data = {
+                        event: 'log',
+                        timestamp: Date.now(),
+                        id: i
+                    };
+
+                    data._data = data;
+
+                    stream.push(data);
+                }
+            });
+        });
+    });
 });
 
 describe('stop()', function () {
 
-	it('makes a last attempt to send any remaining log entries', function (done) {
+    it('makes a last attempt to send any remaining log entries', function (done) {
 
-		var stream = internals.readStream();
-		var hitCount = 0;
-		var ee = new EventEmitter();
-		var server = internals.makeServer(function (message, remote) {
+        var stream = internals.readStream();
+        var hitCount = 0;
+        var ee = new EventEmitter();
+        var server = internals.makeServer(function (message, remote) {
 
-			hitCount++;
-			var payload = JSON.parse(message.toString());
-			var events = payload.events;
+            hitCount++;
+            var payload = JSON.parse(message.toString());
+            var events = payload.events;
 
-			expect(events.log).to.exist();
-			expect(events.log.length).to.equal(2);
+            expect(events.log).to.exist();
+            expect(events.log.length).to.equal(2);
 
-			server.stop(function () {
-				done();
-			});
-		});
+            server.stop(function () {
 
-		server.start(function () {
+                done();
+            });
+        });
 
-			var reporter = new GoodUdp({ log: '*' }, { endpoint:server.info.uri, udpType: 'udp4', threshold: 3 });
+        server.start(function () {
 
-			reporter.init(stream, ee, function (err) {
+            var reporter = new GoodUdp({ log: '*' }, { endpoint:server.info.uri, udpType: 'udp4', threshold: 3 });
 
-				expect(err).to.not.exist();
+            reporter.init(stream, ee, function (err) {
 
-				stream.push({
-					event: 'log',
-					timestamp: Date.now(),
-					id: 1
-				});
-				stream.push({
-					event: 'log',
-					timestamp: Date.now(),
-					id: 2
-				});
-				stream.push(null);
-			});
-		});
-	});
+                expect(err).to.not.exist();
+
+                stream.push({
+                    event: 'log',
+                    timestamp: Date.now(),
+                    id: 1
+                });
+                stream.push({
+                    event: 'log',
+                    timestamp: Date.now(),
+                    id: 2
+                });
+                stream.push(null);
+            });
+        });
+    });
 });
