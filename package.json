@@ -18,7 +18,7 @@
     "good": ">= 6.x.x"
   },
   "devDependencies": {
-    "lab": "5.x.x",
+    "lab": "6.x.x",
     "code": "1.x.x"
   },
   "engines": {

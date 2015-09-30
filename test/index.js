@@ -97,7 +97,7 @@ it('throws an error if missing endpoint', function (done) {
 
     expect(function () {
 
-        var reporter = new GoodUdp({ log: '*' }, null);
+        new GoodUdp({ log: '*' }, null);
     }).to.throw('config.endpoint must be a string');
 
     done();
