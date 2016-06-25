@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "lab": "10.x.x",
-    "code": "2.x.x"
+    "code": "3.x.x"
   },
   "engines": {
     "node": ">=4.0.0"
