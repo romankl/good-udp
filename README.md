@@ -2,6 +2,10 @@
 
 Udp broadcasting for Good process monitor
 
+The versions 4 of this module can be used with Good 7.
+
+For use with previous versions of Good, please refer to [older versions](https://github.com/hapijs/good-udp/releases).
+
 [![Build Status](https://travis-ci.org/hapijs/good-udp.svg?branch=master)](https://travis-ci.org/hapijs/good-udp) ![Current Version](https://img.shields.io/npm/v/good-udp.svg)
 
 Lead Maintainer: [Vladimir de Turckheim](https://github.com/vdeturckheim)
