@@ -9,10 +9,10 @@
     "test-cov-html": "lab -r html -o coverage.html -a code -L"
   },
   "dependencies": {
-    "fast-safe-stringify": "1.0.9"
+    "fast-safe-stringify": "1.0.10"
   },
   "devDependencies": {
-    "lab": "10.x.x",
+    "lab": "11.x.x",
     "code": "3.x.x"
   },
   "engines": {
