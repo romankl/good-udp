@@ -12,7 +12,7 @@
     "fast-safe-stringify": "1.2.0"
   },
   "devDependencies": {
-    "lab": "11.x.x",
+    "lab": "14.x.x",
     "code": "4.x.x"
   },
   "engines": {
