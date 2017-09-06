@@ -229,7 +229,7 @@ describe('GoodUdp', () => {
                 server.stop(() => {
 
                     // checks that the client is closed
-                    expect(reporter.writable).to.be.false();
+                    expect(reporter._writableState.ended).to.be.true();
                     done();
                 });
             }
@@ -239,7 +239,7 @@ describe('GoodUdp', () => {
 
             reporter = new GoodUdp(server.info.uri);
 
-            expect(reporter.writable).to.be.true();
+            expect(reporter._writableState.ended).to.be.false();
             stream.pipe(reporter);
 
             stream.push({
