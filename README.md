@@ -14,9 +14,6 @@ Lead Maintainer: [Vladimir de Turckheim](https://github.com/vdeturckheim)
 
 `good-udp` is a write stream use to send event to remote endpoints in batches. It makes a request with a JSON payload to the supplied `endpoint`. It will make a final request to the endpoint to flush the rest of the data on "finish".
 
-### Note
-`good-udp` will never close the udp client.
-
 ## Good Udp
 ### GoodUdp (endpoint, config)
 

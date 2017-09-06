@@ -211,6 +211,8 @@ describe('GoodUdp', () => {
 
     it('makes a last attempt to send any remaining log entries on "finish"', (done) => {
 
+        let reporter;
+
         const stream = internals.readStream();
         let hitCount = 0;
         const server = internals.makeServer((message, remote) => {
@@ -226,6 +228,8 @@ describe('GoodUdp', () => {
                 expect(events[0].id).to.equal(0);
                 server.stop(() => {
 
+                    // checks that the client is closed
+                    expect(reporter.writable).to.be.false();
                     done();
                 });
             }
@@ -233,8 +237,9 @@ describe('GoodUdp', () => {
 
         server.start(() => {
 
-            const reporter = new GoodUdp(server.info.uri);
+            reporter = new GoodUdp(server.info.uri);
 
+            expect(reporter.writable).to.be.true()
             stream.pipe(reporter);
 
             stream.push({
