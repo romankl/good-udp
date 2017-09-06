@@ -239,7 +239,7 @@ describe('GoodUdp', () => {
 
             reporter = new GoodUdp(server.info.uri);
 
-            expect(reporter.writable).to.be.true()
+            expect(reporter.writable).to.be.true();
             stream.pipe(reporter);
 
             stream.push({
